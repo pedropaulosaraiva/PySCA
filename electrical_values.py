@@ -3,6 +3,7 @@ from math import sqrt, pi, cos, sin
 
 # ! Review docstrings in all classes
 
+
 class PuBase:
     """
     Represents a per unit base for electrical quantities.
@@ -53,7 +54,7 @@ class PuBase:
         v_base = 100*10**3
         s_base = 100*10**6
 
-        return cls(v_base,s_base)
+        return cls(v_base, s_base)
         
     def add_electrical_variable(self, electrical_variable):
         """
@@ -91,41 +92,23 @@ class PuBase:
 
 class ImmittanceConstant:
 
-    def __init__(self, y_pu: complex, pu_baseM: PuBase, id_bus_m: int, id_bus_n: int):
+    def __init__(self, y_pu: complex, base_m: PuBase, id_bus_m: int, id_bus_n: int):
         self.y_pu = y_pu
 
-        self.z_baseM = pu_baseM.z_base
-        pu_baseM.add_electrical_variable(self)
+        self.z_baseM = base_m.z_base
+        base_m.add_electrical_variable(self)
 
         self.id_bus_m = id_bus_m
         self.id_bus_n = id_bus_n
 
     @classmethod
-    def defined_by_impedance(cls, z_pu:complex, pu_baseM: PuBase, id_bus_m: int, id_bus_n: int):
+    def defined_by_impedance(cls, z_pu: complex, base_m: PuBase, id_bus_m: int, id_bus_n: int):
         y_pu = z_pu**(-1)
 
-        return cls(y_pu, pu_baseM, id_bus_m, id_bus_n)
+        return cls(y_pu, base_m, id_bus_m, id_bus_n)
 
     def change_base(self, pu_base: PuBase):
-        self.y_pu = (self.y_pu * pu_base.z_base) / (self.z_baseM)
-        self.z_baseM = pu_base.z_base
-
-
-class ImpedanceConstant:
-    
-    def __init__(self, z_pu: complex, pu_baseM: PuBase, id_barM: int, id_barN: int):
-        self.z_pu = z_pu
-        
-        self.z_baseM = pu_baseM.z_base
-        pu_baseM.add_electrical_variable(self)
-        
-        self.id_barM = id_barM
-        self.id_barN = id_barN
-        
-        
-    def change_base(self, pu_base: PuBase):
-        
-        self.z_pu = (self.z_pu * self.z_baseM) / (pu_base.z_base)
+        self.y_pu = (self.y_pu * pu_base.z_base) / self.z_baseM
         self.z_baseM = pu_base.z_base
             
 
@@ -177,14 +160,14 @@ class VIVariable(ABC):
             new_value_base (complex): The new base value.
         """
         try:
-            self.value_pre_fault_pu = (self.value_pre_fault_pu * old_value_base)/(new_value_base)
+            self.value_pre_fault_pu = (self.value_pre_fault_pu * old_value_base)/new_value_base
         except TypeError:
             pass
         
         try:
-            self.value_seq0_pos_fault_pu = (self.value_seq0_pos_fault_pu * old_value_base)/(new_value_base)
-            self.value_seq1_pos_fault_pu = (self.value_seq1_pos_fault_pu * old_value_base)/(new_value_base)
-            self.value_seq2_pos_fault_pu = (self.value_seq2_pos_fault_pu * old_value_base)/(new_value_base)
+            self.value_seq0_pos_fault_pu = (self.value_seq0_pos_fault_pu * old_value_base)/new_value_base
+            self.value_seq1_pos_fault_pu = (self.value_seq1_pos_fault_pu * old_value_base)/new_value_base
+            self.value_seq2_pos_fault_pu = (self.value_seq2_pos_fault_pu * old_value_base)/new_value_base
         except TypeError:
             pass
     

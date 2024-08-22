@@ -1,126 +1,166 @@
-from passive_elements.generic_elements import Element2TerminalsDefinedBySI, Element3TerminalsDefinedBySI
-from electrical_values import VoltageVariable, CurrentVariable, PuBase, ImpedanceConstant
-
-class TransmissionLine(Element2TerminalsDefinedBySI):
-
-    def __init__(self, z_series_seq0_Ohm_per_km_SI: complex, z_series_seq1_Ohm_per_km_SI: complex,
-                 z_series_seq2_Ohm_per_km_SI: complex, line_lenght_km: float, id_barM: int, id_barN: int):
-        self.z_series_seq0_Ohm_SI = (z_series_seq0_Ohm_per_km_SI * line_lenght_km)
-        self.z_series_seq1_Ohm_SI = (z_series_seq1_Ohm_per_km_SI * line_lenght_km)
-        self.z_series_seq2_Ohm_SI = (z_series_seq2_Ohm_per_km_SI * line_lenght_km)
-
-        super().__init__(self.z_series_seq0_Ohm_SI, self.z_series_seq1_Ohm_SI, self.z_series_seq2_Ohm_SI, id_barM,
-                         id_barN)
-
-    def _define_seq0_topology(self, z_series_seq0_pu):
-        self.branches_seq0 = [ImpedanceConstant(z_series_seq0_pu, self.base_m, self.id_bar_m, self.id_bar_n)]
-
-    def calculate_internal_currents_pre_fault_pu(self):
-        v_barM = self.v_bar_m.pre().a().pu().rec()
-        v_barN = self.v_bar_n.pre().a().pu().rec()
-        v_pu = v_barM - v_barN
-        z_pu = self.branches_seq1[0].z_pu
-        i_pu = v_pu / z_pu
-
-        self.i_bar_m.define_value_pre_fault_pu(i_pu)
-        self.i_bar_n.define_value_pre_fault_pu(i_pu)
-
-    def calculate_internal_currents_pos_fault_pu(self):
-        v_barM = self.v_bar_m.pos().seq0().pu().rec()
-        v_barN = self.v_bar_n.pos().seq0().pu().rec()
-        v_pu = v_barM - v_barN
-        z_pu = self.branches_seq0[0].z_pu
-        i_seq0_pu = v_pu / z_pu
-
-        v_barM = self.v_bar_m.pos().seq1().pu().rec()
-        v_barN = self.v_bar_n.pos().seq1().pu().rec()
-        v_pu = v_barM - v_barN
-        z_pu = self.branches_seq1[0].z_pu
-        i_seq1_pu = v_pu / z_pu
-
-        v_barM = self.v_bar_m.pos().seq2().pu().rec()
-        v_barN = self.v_bar_n.pos().seq2().pu().rec()
-        v_pu = v_barM - v_barN
-        z_pu = self.branches_seq2[0].z_pu
-        i_seq2_pu = v_pu / z_pu
-
-        self.i_bar_m.define_values_pos_fault_pu(i_seq0_pu, i_seq1_pu, i_seq2_pu)
-        self.i_bar_n.define_values_pos_fault_pu(i_seq0_pu, i_seq1_pu, i_seq2_pu)
+from passive_elements.base_elements import Element2Terminals, Element3Terminals
+from electrical_values import PuBase, ImmittanceConstant
+from electrical_relations import calculate_current, calculate_central_v_star, delta2star
 
 
-class TransmissionLinePiModel(Element3TerminalsDefinedBySI):
+class TransmissionLine(Element2Terminals):
 
-    def __init__(self, z_series_seq0_Ohm_per_km_SI: complex, z_series_seq1_Ohm_per_km_SI: complex,
-                 z_series_seq2_Ohm_per_km_SI: complex, y_shunt_seq0_Ohm_per_km_SI: complex,
-                 y_shunt_seq1_Ohm_per_km_SI: complex, y_shunt_seq2_Ohm_per_km_SI: complex, line_lenght_km: float,
-                 id_barM: int, id_barN: int):
-        self.z_series_seq0_Ohm_SI = (z_series_seq0_Ohm_per_km_SI * line_lenght_km)
-        self.z_series_seq1_Ohm_SI = (z_series_seq1_Ohm_per_km_SI * line_lenght_km)
-        self.z_series_seq2_Ohm_SI = (z_series_seq2_Ohm_per_km_SI * line_lenght_km)
+    def __init__(self, z_series_seq0_ohm_per_km_si: complex, z_series_seq1_ohm_per_km_si: complex,
+                 z_series_seq2_ohm_per_km_si: complex, line_length_km: float, id_bus_m: int, id_bus_n: int):
+        
+        self.z_series_seq0_ohm_si = (z_series_seq0_ohm_per_km_si * line_length_km)
+        self.z_series_seq1_ohm_si = (z_series_seq1_ohm_per_km_si * line_length_km)
+        self.z_series_seq2_ohm_si = (z_series_seq2_ohm_per_km_si * line_length_km)
+        
+        pu_base: PuBase = PuBase.default()
+        v_base_m = pu_base.v_base
+        v_base_n = pu_base.v_base
+        s_base = pu_base.s_base
 
-        self.z_shunt_seq0_Ohm_SI = (y_shunt_seq0_Ohm_per_km_SI * line_lenght_km) ** (-1)
-        self.z_shunt_seq1_Ohm_SI = (y_shunt_seq1_Ohm_per_km_SI * line_lenght_km) ** (-1)
-        self.z_shunt_seq2_Ohm_SI = (y_shunt_seq2_Ohm_per_km_SI * line_lenght_km) ** (-1)
+        y_series_seq0_pu = pu_base.z_base / self.z_series_seq0_ohm_si
+        y_series_seq1_pu = pu_base.z_base / self.z_series_seq1_ohm_si
+        y_series_seq2_pu = pu_base.z_base / self.z_series_seq2_ohm_si
+        
+        super().__init__(y_series_seq0_pu, y_series_seq1_pu, y_series_seq2_pu, id_bus_m, id_bus_n, v_base_m, v_base_n,
+                         s_base)
 
-        super().__init__(self.z_series_seq0_Ohm_SI, self.z_series_seq1_Ohm_SI, self.z_series_seq2_Ohm_SI,
-                         self.z_shunt_seq0_Ohm_SI / 2, self.z_shunt_seq1_Ohm_SI / 2, self.z_shunt_seq2_Ohm_SI / 2,
-                         self.z_shunt_seq0_Ohm_SI / 2, self.z_shunt_seq1_Ohm_SI / 2, self.z_shunt_seq2_Ohm_SI / 2,
-                         id_barM, id_barN, 0)
-
-    def _define_seq0_topology(self, z_series_MN_seq0_pu: complex, z_series_NP_seq0_pu: complex,
-                              z_series_PM_seq0_pu: complex):
-        self.branches_seq0 = [ImpedanceConstant(z_series_MN_seq0_pu, self.base_m, self.id_bar_m, self.id_bar_n),
-                              ImpedanceConstant(z_series_NP_seq0_pu, self.baseN, self.id_bar_n, self.id_bar_p),
-                              ImpedanceConstant(z_series_PM_seq0_pu, self.baseP, self.id_bar_p, self.id_bar_m)]
-
-    def calculate_internal_currents_pre_fault_pu(self):
-        # ! Do it star to delta conversions
-        v_barM = self.V_barM.pre().a().pu().rec()
-        v_barN = self.V_barN.pre().a().pu().rec()
-        v_barP = self.V_barP.pre().a().pu().rec()
-
-        v_MN_pu = v_barM - v_barN
-        v_NP_pu = v_barN - v_barP
-        v_PM_pu = v_barP - v_barM
-
-        z_MN_pu = self.branches_seq1[0].z_pu
-        z_NP_pu = self.branches_seq1[1].z_pu
-        z_PM_pu = self.branches_seq1[2].z_pu
-
-        i_MN_pu = v_MN_pu / z_MN_pu
-        i_NP_pu = v_NP_pu / z_NP_pu
-        i_PM_pu = v_PM_pu / z_PM_pu
-
-        self.I_barM.define_value_pre_fault_pu(i_MN_pu)
-        self.I_barN.define_value_pre_fault_pu(i_NP_pu)
-        self.I_barP.define_value_pre_fault_pu(i_PM_pu)
+    def _define_seq0_topology(self, y_series_mn_seq0_pu: complex, y_series_np_seq0_pu: complex,
+                              y_series_mp_seq0_pu: complex):
+        
+        self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, self.id_bus_n)]
 
     def calculate_internal_currents_pos_fault_pu(self):
-        # Do it this module
-        v_barM = self.V_barM.pos().seq0().pu().rec()
-        v_barN = self.V_barN.pos().seq0().pu().rec()
-        v_pu = v_barM - v_barN
-        z_pu = self.branches_seq0[0].z_pu
-        i_seq0_pu = v_pu / z_pu
+        v_bus_m = self.v_bus_m.pos().seq0().pu().rec()
+        v_bus_n = self.v_bus_n.pos().seq0().pu().rec()
+        y_pu = self.branches_seq0[0].y_pu
+        i_seq0_pu = calculate_current(y_pu, v_bus_m, v_bus_n)
 
-        v_barM = self.V_barM.pos().seq1().pu().rec()
-        v_barN = self.V_barN.pos().seq1().pu().rec()
-        v_pu = v_barM - v_barN
-        z_pu = self.branches_seq1[0].z_pu
-        i_seq1_pu = v_pu / z_pu
+        v_bus_m = self.v_bus_m.pos().seq1().pu().rec()
+        v_bus_n = self.v_bus_n.pos().seq1().pu().rec()
+        y_pu = self.branches_seq1[0].y_pu
+        i_seq1_pu = calculate_current(y_pu, v_bus_m, v_bus_n)
 
-        v_barM = self.V_barM.pos().seq2().pu().rec()
-        v_barN = self.V_barN.pos().seq2().pu().rec()
-        v_pu = v_barM - v_barN
-        z_pu = self.branches_seq2[0].z_pu
-        i_seq2_pu = v_pu / z_pu
+        v_bus_m = self.v_bus_m.pos().seq2().pu().rec()
+        v_bus_n = self.v_bus_n.pos().seq2().pu().rec()
+        y_pu = self.branches_seq2[0].y_pu
+        i_seq2_pu = calculate_current(y_pu, v_bus_m, v_bus_n)
 
-        self.I_barM.define_values_pos_fault_pu(i_seq0_pu, i_seq1_pu, i_seq2_pu)
-        self.I_barN.define_values_pos_fault_pu(i_seq0_pu, i_seq1_pu, i_seq2_pu)
+        self.i_bus_m.define_values_pos_fault_pu(i_seq0_pu, i_seq1_pu, i_seq2_pu)
+        self.i_bus_n.define_values_pos_fault_pu(-i_seq0_pu, -i_seq1_pu, -i_seq2_pu)
+
+
+class TransmissionLinePiModel(Element3Terminals):
+
+    def __init__(self, z_series_seq0_ohm_per_km_si: complex, z_series_seq1_ohm_per_km_si: complex,
+                 z_series_seq2_ohm_per_km_si: complex, y_shunt_seq0_s_per_km_si: complex,
+                 y_shunt_seq1_s_per_km_si: complex, y_shunt_seq2_s_per_km_si: complex, line_length_km: float,
+                 id_bus_m: int, id_bus_n: int):
+        
+        self.z_series_seq0_ohm_si = (z_series_seq0_ohm_per_km_si * line_length_km)
+        self.z_series_seq1_ohm_si = (z_series_seq1_ohm_per_km_si * line_length_km)
+        self.z_series_seq2_ohm_si = (z_series_seq2_ohm_per_km_si * line_length_km)
+
+        self.y_shunt_seq0_ohm_si = (y_shunt_seq0_s_per_km_si * line_length_km)
+        self.y_shunt_seq1_ohm_si = (y_shunt_seq1_s_per_km_si * line_length_km)
+        self.y_shunt_seq2_ohm_si = (y_shunt_seq2_s_per_km_si * line_length_km)
+
+        pu_base: PuBase = PuBase.default()
+        v_base_m = pu_base.v_base
+        v_base_n = pu_base.v_base
+        s_base = pu_base.s_base
+
+        y_series_seq0_pu = pu_base.z_base / self.z_series_seq0_ohm_si
+        y_series_seq1_pu = pu_base.z_base / self.z_series_seq1_ohm_si
+        y_series_seq2_pu = pu_base.z_base / self.z_series_seq2_ohm_si
+
+        y_shunt_seq0_pu = pu_base.z_base * self.y_shunt_seq0_ohm_si
+        y_shunt_seq1_pu = pu_base.z_base * self.y_shunt_seq0_ohm_si
+        y_shunt_seq2_pu = pu_base.z_base * self.y_shunt_seq0_ohm_si
+
+        super().__init__(y_series_seq0_pu, y_series_seq1_pu, y_series_seq2_pu, 
+                         y_shunt_seq0_pu / 2, y_shunt_seq1_pu / 2, y_shunt_seq2_pu / 2,
+                         y_shunt_seq0_pu / 2, y_shunt_seq1_pu / 2, y_shunt_seq2_pu / 2,
+                         id_bus_m, id_bus_n, 0, v_base_m, v_base_n, PuBase.default().v_base, s_base)
+
+    def _define_seq0_topology(self, y_series_mn_seq0_pu: complex, y_series_np_seq0_pu: complex,
+                              y_series_mp_seq0_pu: complex):
+        self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, self.id_bus_n),
+                              ImmittanceConstant(y_series_np_seq0_pu, self.base_m, self.id_bus_n, self.id_bus_p),
+                              ImmittanceConstant(y_series_mp_seq0_pu, self.base_m, self.id_bus_m, self.id_bus_p)]
+
+    def calculate_internal_currents_pos_fault_pu(self):
+
+        v_bus_m = self.v_bus_m.pos().seq0().pu().rec()
+        v_bus_n = self.v_bus_n.pos().seq0().pu().rec()
+        v_bus_p = self.v_bus_p.pos().seq0().pu().rec()
+
+        y_mn_pu = self.branches_seq0[0].y_pu
+        y_np_pu = self.branches_seq0[1].y_pu
+        y_mp_pu = self.branches_seq0[2].y_pu
+
+        i_mn_seq0_pu = calculate_current(y_mn_pu, v_bus_m, v_bus_n)
+        i_np_seq0_pu = calculate_current(y_np_pu, v_bus_n, v_bus_p)
+        i_mp_seq0_pu = calculate_current(y_mp_pu, v_bus_m, v_bus_p)
+
+        y_m, y_n, y_p = delta2star(y_mn_pu, y_np_pu, y_mp_pu)
+
+        v_central_star = calculate_central_v_star(v_bus_m, v_bus_n, v_bus_p, y_m, y_n, y_p)
+
+        i_bus_m_seq0_pu = calculate_current(y_m, v_bus_m, v_central_star)
+        i_bus_n_seq0_pu = calculate_current(y_n, v_central_star, v_bus_n)
+        i_bus_p_seq0_pu = calculate_current(y_p, v_central_star, v_bus_p)
+
+        v_bus_m = self.v_bus_m.pos().seq1().pu().rec()
+        v_bus_n = self.v_bus_n.pos().seq1().pu().rec()
+        v_bus_p = self.v_bus_p.pos().seq1().pu().rec()
+
+        y_mn_pu = self.branches_seq1[0].y_pu
+        y_np_pu = self.branches_seq1[1].y_pu
+        y_mp_pu = self.branches_seq1[2].y_pu
+
+        i_mn_seq1_pu = calculate_current(y_mn_pu, v_bus_m, v_bus_n)
+        i_np_seq1_pu = calculate_current(y_np_pu, v_bus_n, v_bus_p)
+        i_mp_seq1_pu = calculate_current(y_mp_pu, v_bus_m, v_bus_p)
+
+        y_m, y_n, y_p = delta2star(y_mn_pu, y_np_pu, y_mp_pu)
+
+        v_central_star = calculate_central_v_star(v_bus_m, v_bus_n, v_bus_p, y_m, y_n, y_p)
+
+        i_bus_m_seq1_pu = calculate_current(y_m, v_bus_m, v_central_star)
+        i_bus_n_seq1_pu = calculate_current(y_n, v_central_star, v_bus_n)
+        i_bus_p_seq1_pu = calculate_current(y_p, v_central_star, v_bus_p)
+
+        v_bus_m = self.v_bus_m.pos().seq2().pu().rec()
+        v_bus_n = self.v_bus_n.pos().seq2().pu().rec()
+        v_bus_p = self.v_bus_p.pos().seq2().pu().rec()
+
+        y_mn_pu = self.branches_seq2[0].y_pu
+        y_np_pu = self.branches_seq2[1].y_pu
+        y_mp_pu = self.branches_seq2[2].y_pu
+
+        i_mn_seq2_pu = calculate_current(y_mn_pu, v_bus_m, v_bus_n)
+        i_np_seq2_pu = calculate_current(y_np_pu, v_bus_n, v_bus_p)
+        i_mp_seq2_pu = calculate_current(y_mp_pu, v_bus_m, v_bus_p)
+
+        y_m, y_n, y_p = delta2star(y_mn_pu, y_np_pu, y_mp_pu)
+
+        v_central_star = calculate_central_v_star(v_bus_m, v_bus_n, v_bus_p, y_m, y_n, y_p)
+
+        i_bus_m_seq2_pu = calculate_current(y_m, v_bus_m, v_central_star)
+        i_bus_n_seq2_pu = calculate_current(y_n, v_bus_n, v_central_star)
+        i_bus_p_seq2_pu = calculate_current(y_p, v_bus_p, v_central_star)
+
+        self.i_mn.define_values_pos_fault_pu(i_mn_seq0_pu, i_mn_seq1_pu, i_mn_seq2_pu)
+        self.i_np.define_values_pos_fault_pu(i_np_seq0_pu, i_np_seq1_pu, i_np_seq2_pu)
+        self.i_mp.define_values_pos_fault_pu(i_mp_seq0_pu, i_mp_seq1_pu, i_mp_seq2_pu)
+
+        self.i_bus_m.define_values_pos_fault_pu(i_bus_m_seq0_pu, i_bus_m_seq1_pu, i_bus_m_seq2_pu)
+        self.i_bus_n.define_values_pos_fault_pu(i_bus_n_seq0_pu, i_bus_n_seq1_pu, i_bus_n_seq2_pu)
+        self.i_bus_p.define_values_pos_fault_pu(i_bus_p_seq0_pu, i_bus_p_seq1_pu, i_bus_p_seq2_pu)
 
 
 if __name__ == "__main__":
-    transmissionline = TransmissionLine(10, 10, 10,
-                                        5, 1, 2)
+    transmission_line = TransmissionLine(10, 10, 10,
+                                         5, 1, 2)
 
-    print(transmissionline)
+    print(transmission_line)
