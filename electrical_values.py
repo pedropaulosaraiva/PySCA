@@ -6,17 +6,18 @@ from math import sqrt, pi, cos, sin
 
 class PuBase:
     """
-    Represents a per unit base for electrical quantities.
+    Represents a per-unit base for electrical quantities.
 
     Attributes:
         v_base (float): The base voltage value.
         s_base (float): The base power value.
         z_base (float): The base impedance value.
         i_base (float): The base current value.
-        _electrical_variables (list): A list to store electrical variables.
+        id_bus (int): The id of the bus holding the per-unit base.
+        _electrical_variables (list): A list to store electrical variables that observes the per-unit base.
     """
 
-    def __init__(self, v_base: float, s_base: float):
+    def __init__(self, v_base: float, s_base: float, id_bus: int):
         """
         Initializes a new instance of the PuBase class.
 
@@ -33,6 +34,7 @@ class PuBase:
         """
         self.v_base = v_base
         self.s_base = s_base
+        self.id_bus = id_bus
 
         # Calculate the base impedance value
         self.z_base = v_base ** 2 / s_base
@@ -74,12 +76,8 @@ class PuBase:
             v_base (complex): The new base voltage value.
             s_base (complex): The new base power value.
 
-        Returns:
-            None
-
-        This function updates the base values of the object, including the voltage base, power base, impedance base,
-        and current base. It then iterates over all electrical variables stored in the object and calls the 
-        `change_base` method on each variable.
+        This function updates the base values of the object. It then iterates over all electrical variables stored in
+        the object and calls the "change_base" method on each variable.
         """
         self.v_base = v_base
         self.s_base = s_base
@@ -88,7 +86,25 @@ class PuBase:
         
         for electrical_variable in self._electrical_variables:
             electrical_variable.change_base
-            
+
+
+class PuBaseManager:
+
+    pu_bases: list[PuBase] = []
+
+    @classmethod
+    def create_pu_base(cls, v_base: float, s_base: float, id_bus: int):
+
+        for pu_base in cls.pu_bases:
+            id_bus_base = pu_base.id_bus
+            if id_bus == id_bus_base:
+                return pu_base
+
+        pu_base = PuBase(v_base, s_base, id_bus)
+        cls.pu_bases.append(pu_base)
+        return pu_base
+
+
 
 class ImmittanceConstant:
 
@@ -171,7 +187,7 @@ class VIVariable(ABC):
         except TypeError:
             pass
     
-    def define_value_pre_fault_SI(self, value):
+    def define_value_pre_fault_si(self, value):
         """
         Define the value before fault in SI units.
 
@@ -180,7 +196,7 @@ class VIVariable(ABC):
         """
         self.value_pre_fault_pu = value / self.value_base
         
-    def define_values_pos_fault_SI(self, value_seq0, value_seq1, value_seq2):
+    def define_values_pos_fault_si(self, value_seq0, value_seq1, value_seq2):
         """
         Define the values after fault in SI units.
 
@@ -215,15 +231,15 @@ class VIVariable(ABC):
         self.value_seq1_pos_fault_pu = value_seq1 
         self.value_seq2_pos_fault_pu = value_seq2 
     
-    def request_value(self, time, phase_seq, pu_SI, format):
+    def request_value(self, time, phase_seq, pu_si, notation):
         """
         Request the value of the object.
 
         Args:
             time (str): The time of the request.
             phase_seq (str): The phase sequence of the request.
-            pu_SI (str): The unit of the requested value.
-            format (str): The format of the requested value.
+            pu_si (str): The unit of the requested value.
+            notation (str): The notation of the requested value.
 
         Returns:
             The requested value.
@@ -250,25 +266,24 @@ class VIVariable(ABC):
         else:
             pass
             
-        if pu_SI == 'pu':
+        if pu_si == 'pu':
             self.pu()
-        elif pu_SI == 'SI':
-            self.SI()
+        elif pu_si == 'si':
+            self.si()
         else:
             pass
         
-        if format == 'rec':
+        if notation == 'rec':
             value = self.rec()
-        elif format == 'mag':
+        elif notation == 'mag':
             value = self.mag()
-        elif format == 'polar':
-            value = self.polar()
+        elif notation == 'ang':
+            value = self.ang()
         else:
             pass
         
         return value
-            
-        
+
     # * Request functions
     def pre(self):
         """
@@ -292,7 +307,7 @@ class VIVariable(ABC):
         Request the value in phase A.
         """
         self.request_value_pu = (self.request_seq_values[0] + self.request_seq_values[1] * cpolar(1, 0) +
-                                self.request_seq_values[2] * cpolar(1, 0))
+                                 self.request_seq_values[2] * cpolar(1, 0))
 
         return self
 
@@ -301,7 +316,7 @@ class VIVariable(ABC):
         Request the value in phase B.
         """
         self.request_value_pu = (self.request_seq_values[0] + self.request_seq_values[1] * cpolar(1, -120) +
-                                self.request_seq_values[2] * cpolar(1, 120))
+                                 self.request_seq_values[2] * cpolar(1, 120))
 
         return self
     
@@ -310,7 +325,7 @@ class VIVariable(ABC):
         Request the value in phase C.
         """
         self.request_value_pu = (self.request_seq_values[0] + self.request_seq_values[1] * cpolar(1, 120) +
-                                self.request_seq_values[2] * cpolar(1, -120))
+                                 self.request_seq_values[2] * cpolar(1, -120))
 
         return self
     
@@ -346,7 +361,7 @@ class VIVariable(ABC):
 
         return self
     
-    def SI(self):
+    def si(self):
         """
         Request the value in SI units.
         """
@@ -394,11 +409,9 @@ class CurrentVariable(VIVariable):
     def change_base(self, pubase: PuBase):
         self.update_base_values(self.value_base, pubase.i_base)
         self.value_base = pubase.i_base
-        
 
 
 # * Auxiliary functions
 def cpolar(r, theta):
     theta = theta * pi / 180
     return r * complex(cos(theta), sin(theta))
-

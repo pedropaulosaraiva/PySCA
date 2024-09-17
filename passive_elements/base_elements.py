@@ -1,4 +1,4 @@
-from electrical_values import VoltageVariable, CurrentVariable, PuBase, ImmittanceConstant
+from electrical_values import VoltageVariable, CurrentVariable, PuBase, PuBaseManager, ImmittanceConstant
 from abc import ABC, abstractmethod
 from electrical_relations import calculate_central_v_star, calculate_current, delta2star
 
@@ -14,9 +14,9 @@ class Element3Terminals(ABC):
         self.id_bus_n = id_bus_n
         self.id_bus_p = id_bus_p
 
-        self.base_m = PuBase(v_base_m, s_base)
-        self.base_n = PuBase(v_base_n, s_base)
-        self.base_p = PuBase(v_base_p, s_base)
+        self.base_m = PuBaseManager.create_pu_base(v_base_m, s_base, id_bus_m)
+        self.base_n = PuBaseManager.create_pu_base(v_base_n, s_base, id_bus_n)
+        self.base_p = PuBaseManager.create_pu_base(v_base_p, s_base, id_bus_p)
 
         self.v_bus_m = VoltageVariable(self.base_m)
         self.v_bus_n = VoltageVariable(self.base_n)
