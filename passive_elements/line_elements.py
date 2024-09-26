@@ -1,4 +1,4 @@
-from passive_elements.base_elements import Element2Terminals, Element3Terminals
+from passive_elements.base_elements import Element3Terminals
 from electrical_values import PuBase, ImmittanceConstant
 from electrical_relations import calculate_current, calculate_central_v_star, delta2star
 from passive_elements.generic_elements import SeriesElement

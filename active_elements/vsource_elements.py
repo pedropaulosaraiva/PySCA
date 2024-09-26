@@ -1,8 +1,6 @@
 from active_elements.base_elements import Element1Terminal
 from electrical_values import ImmittanceConstant
-from electrical_relations import (calculate_current, star2delta, delta2star,
-                                  equivalent_y_series, calculate_admittance_matrix_mnp_directly)
-import numpy as np
+from electrical_relations import equivalent_y_series
 
 
 class NetworkEquivalent(Element1Terminal):

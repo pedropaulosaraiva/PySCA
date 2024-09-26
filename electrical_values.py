@@ -56,7 +56,7 @@ class PuBase:
         v_base = 100*10**3
         s_base = 100*10**6
 
-        return cls(v_base, s_base)
+        return cls(v_base, s_base, 0)
         
     def add_electrical_variable(self, electrical_variable):
         """
@@ -105,7 +105,6 @@ class PuBaseManager:
         return pu_base
 
 
-
 class ImmittanceConstant:
 
     def __init__(self, y_pu: complex, base_m: PuBase, id_bus_m: int, id_bus_n: int):
@@ -126,7 +125,7 @@ class ImmittanceConstant:
     def change_base(self, pu_base: PuBase):
         self.y_pu = (self.y_pu * pu_base.z_base) / self.z_baseM
         self.z_baseM = pu_base.z_base
-            
+
 
 class VIVariable(ABC):
     """

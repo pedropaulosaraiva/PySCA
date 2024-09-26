@@ -14,76 +14,74 @@ class Transformer2Windings(Element2Terminals):
 
         self.primary_connection = primary_connection
         self.secondary_connection = secondary_connection
+        self.connections = (primary_connection, secondary_connection)
         self.delay_pri2sec = delay_pri2sec
 
-        # ! Raise exeption if zn is defined without Yzn
-        if zn_grounded_primary_pu != (0 + 0j):
-            self.y_grounded_primary = ImmittanceConstant(zn_grounded_primary_pu ** (-1), self.base_m,
-                                                         0, 0)
-        if zn_grounded_secondary_pu != (0 + 0j):
-            self.y_grounded_secondary = ImmittanceConstant(zn_grounded_secondary_pu ** (-1), self.base_m,
-                                                           0, 0)
-
-        # ! Raise an exeception if tap is complex
+        for index, connection in enumerate(self.connections):
+            self.y_grounded_primary, self.y_grounded_secondary = None, None
+            y_grounded = [self.y_grounded_primary, self.y_grounded_secondary]
+            zn_grounded = (zn_grounded_primary_pu, zn_grounded_secondary_pu)
+            if connection == 'Yg':
+                y_grounded[index] = ImmittanceConstant(float('inf'), self.base_m, 0, 0)
+            elif connection == 'Yzn':
+                y_grounded[index] = ImmittanceConstant(zn_grounded[index] ** (-1), self.base_m,
+                                                       0, 0)
+            elif (connection == 'Y') or (connection == 'Yn') or (connection == 'D'):
+                y_grounded[index] = ImmittanceConstant(0, self.base_m, 0, 0)
+            else:
+                # ! exception here:
+                pass
+        # ! Raise an exception if tap is complex
 
         super().__init__(z_series_pu ** (-1), z_series_pu ** (-1), z_series_pu ** (-1),
                          id_bus_m, id_bus_n, v_nom_pri_kv * tap_primary * 1000, v_nom_sec_kv * tap_secondary * 1000,
                          s_nom_mva * (10**6))
 
-    def _define_seq0_topology(self, y_series_mn_seq0_pu: complex, y_series_np_seq0_pu: complex, 
+    def _define_seq0_topology(self, y_series_seq0_pu: complex, y_series_np_seq0_pu: complex,
                               y_series_mp_seq0_pu: complex):
-        if self.primary_connection == "Yg":
 
-            if self.secondary_connection == "Yg":
-                self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, self.id_bus_n)
-                                      ]
+        if (self.primary_connection == "Yg") or (self.primary_connection == 'Yzn'):
+            y_series_seq0_pu = equivalent_y_series(y_series_seq0_pu, 3 * self.y_grounded_primary.y_pu)
 
-            elif self.secondary_connection == "Yzn":
-                y_series_mn_seq0_pu = equivalent_y_series(y_series_mn_seq0_pu, 3 * self.y_grounded_secondary.y_pu)
-                self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, self.id_bus_n)
-                                      ]
+            if (self.primary_connection == "Yg") or (self.primary_connection == 'Yzn'):
+                y_series_seq0_pu = equivalent_y_series(y_series_seq0_pu, 3 * self.y_grounded_secondary.y_pu)
 
-            elif self.secondary_connection == "D":
-                self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, 0)]
+                self.branches_seq0 = [ImmittanceConstant(y_series_seq0_pu, self.base_m, self.id_bus_m, self.id_bus_n),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
 
-            elif (self.secondary_connection == "Y") or (self.secondary_connection == "Yn"):
-                self.branches_seq0 = [ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
+            elif self.primary_connection == "D":
+                self.branches_seq0 = [ImmittanceConstant(y_series_seq0_pu, self.base_m, self.id_bus_m, 0),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
+
+            elif (self.primary_connection == "Y") or (self.primary_connection == "Yn"):
+                self.branches_seq0 = [ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
 
         elif self.primary_connection == "D":
+            if (self.primary_connection == "Yg") or (self.primary_connection == 'Yzn'):
+                y_series_seq0_pu = equivalent_y_series(y_series_seq0_pu, 3 * self.y_grounded_secondary.y_pu)
 
-            if self.secondary_connection == "Yg":
-                self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, 0, self.id_bus_n)]
+                self.branches_seq0 = [ImmittanceConstant(y_series_seq0_pu, self.base_m, 0, self.id_bus_n),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
 
-            elif self.secondary_connection == "Yzn":
-                y_series_mn_seq0_pu = equivalent_y_series(y_series_mn_seq0_pu, 3 * self.y_grounded_secondary.y_pu)
-                self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, 0, self.id_bus_n)]
+            elif self.primary_connection == "D":
+                self.branches_seq0 = [ImmittanceConstant(0, self.base_m, self.id_bus_m, 0),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
 
-            elif self.secondary_connection == "D":
-                self.branches_seq0 = [ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
-
-            elif (self.secondary_connection == "Y") or (self.secondary_connection == "Yn"):
-                self.branches_seq0 = [ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
+            elif (self.primary_connection == "Y") or (self.primary_connection == "Yn"):
+                self.branches_seq0 = [ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n),
+                                      ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
 
         elif (self.primary_connection == "Y") or (self.primary_connection == "Yn"):
-            self.branches_seq0 = [ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
-
-        elif self.primary_connection == 'Yzn':
-            y_series_mn_seq0_pu = equivalent_y_series(y_series_mn_seq0_pu, 3 * self.y_grounded_primary.y_pu)
-
-            if self.secondary_connection == "Yg":
-                self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, self.id_bus_n)
-                                      ]
-
-            elif self.secondary_connection == "Yzn":
-                y_series_mn_seq0_pu = equivalent_y_series(y_series_mn_seq0_pu, 3 * self.y_grounded_secondary.y_pu)
-                self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, self.id_bus_n)
-                                      ]
-
-            elif self.secondary_connection == "D":
-                self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, 0)]
-
-            elif (self.secondary_connection == "Y") or (self.secondary_connection == "Yn"):
-                self.branches_seq0 = [ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
+            self.branches_seq0 = [ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n),
+                                  ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n),
+                                  ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_n)]
 
     def calculate_internal_currents_pos_fault_pu(self):
         v_bus_m = self.v_bus_m.pos().seq0().pu().rec()
@@ -145,20 +143,18 @@ class Transformer3Windings(Element3Terminals):
                 y_grounded[index] = ImmittanceConstant(float('inf'), self.base_m, 0, 0)
             elif connection == 'Yzn':
                 y_grounded[index] = ImmittanceConstant(zn_grounded[index] ** (-1), self.base_m,
-                                                             0, 0)
+                                                       0, 0)
             elif (connection == 'Y') or (connection == 'Yn') or (connection == 'D'):
                 y_grounded[index] = ImmittanceConstant(0, self.base_m, 0, 0)
             else:
                 # ! exception here:
                 pass
-
-        # ! Raise an exeception if tap is complex
-
+        # ! Raise an exception if tap is complex
 
         super().__init__(y_mn_pu, y_mn_pu, y_mn_pu, y_np_pu, y_np_pu, y_np_pu, y_mp_pu, y_mp_pu, y_mp_pu,
                          id_bus_m, id_bus_n, id_bus_p, v_nom_pri_kv * tap_primary * 1000,
                          v_nom_sec_kv * tap_secondary * 1000, v_nom_ter_kv * tap_tertiary * 1000, 
-                         s_nom_pri_mva * 10 ** (6))
+                         s_nom_pri_mva * 10 ** 6)
         
     def _calculate_star_model(self, z_ps_pu, z_pt_pu, z_st_pu):
         
@@ -278,7 +274,6 @@ class Transformer3Windings(Element3Terminals):
                                                          self.id_bus_n, self.id_bus_p),
                                       ImmittanceConstant(0, self.base_m,
                                                          self.id_bus_m, self.id_bus_p)]
-
 
     def _is_primary_D(self, y_m: complex, y_n: complex, y_p: complex):
         if (self.secondary_connection == "Yg") or (self.secondary_connection == 'Yzn'):

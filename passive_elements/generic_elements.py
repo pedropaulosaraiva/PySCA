@@ -25,7 +25,9 @@ class SeriesElement(Element2Terminals):
 
     def _define_seq0_topology(self, y_series_mn_seq0_pu: complex, y_series_np_seq0_pu: complex,
                               y_series_mp_seq0_pu: complex):
-        self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, self.id_bus_n)]
+        self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, self.id_bus_n),
+                              ImmittanceConstant(0, self.base_m, self.id_bus_n, self.id_bus_p),
+                              ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_p)]
 
     def calculate_internal_currents_pos_fault_pu(self):
         v_bus_m = self.v_bus_m.pos().seq0().pu().rec()
@@ -57,7 +59,6 @@ class ShuntElement(Element1Terminal):
 
         pu_base: PuBase = PuBase.default()
         v_base_m = pu_base.v_base
-        v_base_n = pu_base.v_base
         s_base = pu_base.s_base
 
         y_series_seq0_pu = pu_base.z_base * self.y_series_seq0_ohm_si
@@ -68,7 +69,9 @@ class ShuntElement(Element1Terminal):
 
     def _define_seq0_topology(self, y_series_mn_seq0_pu: complex, y_series_np_seq0_pu: complex,
                               y_series_mp_seq0_pu: complex):
-        self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, 0)]
+        self.branches_seq0 = [ImmittanceConstant(y_series_mn_seq0_pu, self.base_m, self.id_bus_m, 0),
+                              ImmittanceConstant(0, self.base_m, self.id_bus_n, self.id_bus_p),
+                              ImmittanceConstant(0, self.base_m, self.id_bus_m, self.id_bus_p)]
 
     def calculate_internal_currents_pos_fault_pu(self):
         v_bus_m = self.v_bus_m.pos().seq0().pu().rec()
@@ -84,4 +87,3 @@ class ShuntElement(Element1Terminal):
         i_seq2_pu = calculate_current(y_pu, v_bus_m, 0)
 
         self.i_bus_m.define_values_pos_fault_pu(i_seq0_pu, i_seq1_pu, i_seq2_pu)
-
