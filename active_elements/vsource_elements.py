@@ -1,9 +1,9 @@
-from active_elements.base_elements import Element1Terminal
+from active_elements.base_elements import ActiveElement1Terminal
 from electrical_values import ImmittanceConstant
 from electrical_relations import equivalent_y_series
 
 
-class NetworkEquivalent(Element1Terminal):
+class NetworkEquivalent(ActiveElement1Terminal):
 
     def __init__(self, z_series_seq0_pu: complex, z_series_seq1_pu: complex, z_series_seq2_pu: complex, id_bus_m: int,
                  v_nom_kv: float, s_nom_mva: float):
@@ -30,7 +30,7 @@ class NetworkEquivalent(Element1Terminal):
         self.branches_seq0 = ImmittanceConstant(y_series_seq0_pu, self.base_m, self.id_bus_m, 0)
 
 
-class SynchronousGenerator(Element1Terminal):
+class SynchronousGenerator(ActiveElement1Terminal):
 
     def __init__(self, z_series_seq0_pu: complex, z_series_seq1_pu: complex, z_series_seq2_pu: complex, id_bus_m: int,
                  v_nom_kv: float, s_nom_mva: float, connection: str, zn_grounded_pu=0 + 0j):

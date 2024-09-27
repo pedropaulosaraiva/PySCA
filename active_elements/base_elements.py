@@ -2,7 +2,7 @@ from electrical_values import VoltageVariable, CurrentVariable, PuBaseManager, I
 from abc import ABC, abstractmethod
 
 
-class Element1Terminal(ABC):
+class ActiveElement1Terminal(ABC):
 
     def __init__(self, y_series_seq0_pu: complex, y_series_seq1_pu: complex, y_series_seq2_pu: complex, id_bus_m: int,
                  v_base_m: float, s_base: float):
@@ -53,9 +53,9 @@ class Element1Terminal(ABC):
         self.v_bus_m.define_values_pos_fault_pu(voltage_bus_m_seq0_pu, voltage_bus_m_seq1_pu, voltage_bus_m_seq2_pu)
 
 
-class CompositeElement:
+class ActiveCompositeElement:
 
-    def __init__(self, elements: list[Element1Terminal]):
+    def __init__(self, elements: list[ActiveElement1Terminal]):
 
         self.elements = elements
         # ! Raise error if elements aren't in parallel
