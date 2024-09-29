@@ -1,11 +1,11 @@
-from passive_elements.base_elements import Element2Terminals, Element3Terminals, Element1Terminal
+from passive_elements.base_elements import PassiveElement2Terminals, PassiveElement3Terminals, PassiveElement1Terminal
 from electrical_values import ImmittanceConstant
 from electrical_relations import (calculate_current, star2delta, delta2star,
                                   equivalent_y_series, calculate_admittance_matrix_mnp_directly)
 import numpy as np
 
 
-class Transformer2Windings(Element2Terminals):
+class Transformer2Windings(PassiveElement2Terminals):
 
     def __init__(self, z_series_pu: complex, id_bus_m: int, id_bus_n: int, v_nom_pri_kv: float,
                  v_nom_sec_kv: float, s_nom_mva: float, primary_connection: str, secondary_connection: str,
@@ -115,7 +115,7 @@ class Transformer2Windings(Element2Terminals):
             self.i_bus_n.define_values_pos_fault_pu(-i_seq0_pu, -i_seq1_pu, -i_seq2_pu)
 
 
-class Transformer3Windings(Element3Terminals):
+class Transformer3Windings(PassiveElement3Terminals):
 
     def __init__(self, z_series_prisec_pu: complex, z_series_priter_pu: complex, z_series_secter_pu: complex,
                  id_bus_m: int, id_bus_n: int, id_bus_p: int, v_nom_pri_kv: float, v_nom_sec_kv: float,
@@ -507,7 +507,7 @@ class Transformer3Windings(Element3Terminals):
         self.i_bus_p.define_values_pos_fault_pu(i_seq0[2][0], i_seq1[2][0], i_seq2[2][0])
 
 
-class GroundingTransformer(Element1Terminal):
+class GroundingTransformer(PassiveElement1Terminal):
 
     def __init__(self, z_series_pu: complex, id_bus_m: int, v_nom_kv: float,
                  s_nom_mva: float, zn_grounded_primary_pu=0 + 0j):

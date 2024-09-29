@@ -1,4 +1,4 @@
-from passive_elements.base_elements import Element3Terminals
+from passive_elements.base_elements import PassiveElement3Terminals
 from electrical_values import PuBase, ImmittanceConstant
 from electrical_relations import calculate_current, calculate_central_v_star, delta2star
 from passive_elements.generic_elements import SeriesElement
@@ -16,7 +16,7 @@ class TransmissionLine(SeriesElement):
         super().__init__(z_series_seq0_ohm_si, z_series_seq1_ohm_si, z_series_seq2_ohm_si, id_bus_m, id_bus_n)
 
 
-class TransmissionLinePiModel(Element3Terminals):
+class TransmissionLinePiModel(PassiveElement3Terminals):
 
     def __init__(self, z_series_seq0_ohm_per_km_si: complex, z_series_seq1_ohm_per_km_si: complex,
                  z_series_seq2_ohm_per_km_si: complex, y_shunt_seq0_s_per_km_si: complex,

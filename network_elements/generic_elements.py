@@ -1,7 +1,7 @@
 from electrical_values import VoltageVariable, CurrentVariable, PuBase, PuBaseManager, ImmittanceConstant
 from abc import ABC, abstractmethod
 from electrical_relations import calculate_central_v_star, calculate_current, delta2star
-from passive_elements.base_elements import Element3Terminals
+from passive_elements.base_elements import PassiveElement3Terminals
 
 
 class Bus:

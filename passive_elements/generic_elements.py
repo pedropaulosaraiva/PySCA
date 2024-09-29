@@ -1,9 +1,9 @@
-from passive_elements.base_elements import Element2Terminals, Element1Terminal
+from passive_elements.base_elements import PassiveElement2Terminals, PassiveElement1Terminal
 from electrical_values import PuBase, ImmittanceConstant
 from electrical_relations import calculate_current
 
 
-class SeriesElement(Element2Terminals):
+class SeriesElement(PassiveElement2Terminals):
 
     def __init__(self, z_series_seq0_ohm_si: complex, z_series_seq1_ohm_si: complex, z_series_seq2_ohm_si: complex,
                  id_bus_m: int, id_bus_n: int):
@@ -49,7 +49,7 @@ class SeriesElement(Element2Terminals):
         self.i_bus_n.define_values_pos_fault_pu(-i_seq0_pu, -i_seq1_pu, -i_seq2_pu)
 
 
-class ShuntElement(Element1Terminal):
+class ShuntElement(PassiveElement1Terminal):
 
     def __init__(self, y_series_seq0_ohm_si: complex, y_series_seq1_ohm_si: complex, y_series_seq2_ohm_si: complex,
                  id_bus_m: int):
