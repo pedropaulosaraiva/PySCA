@@ -1,4 +1,5 @@
-from electrical_values import VoltageVariable, CurrentVariable, PuBase, PuBaseManager, ImmittanceConstant
+from electrical_values import (VoltageVariable, CurrentVariable, PuBase, PuBaseManager,
+                               ImmittanceConstant, MatrixVariable)
 from abc import ABC, abstractmethod
 from electrical_relations import calculate_central_v_star, calculate_current, delta2star
 from passive_elements.base_elements import PassiveElement3Terminals
@@ -29,17 +30,17 @@ class Network:
 
         self.buses = [ground_bus] + [Bus(i) for i in range(1, number_buses + 1)]
 
-        self.element_node_incidence_matrix = None
-        self.bus_incidence_matrix = None
+        self.element_node_incidence_matrix = MatrixVariable()
+        self.bus_incidence_matrix = MatrixVariable()
 
-        self.primitive_admittance_matrix = None
-        self.primitive_impedance_matrix = None
+        self.primitive_admittance_matrix = MatrixVariable()
+        self.primitive_impedance_matrix = MatrixVariable()
 
-        self.bus_admittance_matrix = None
-        self.bus_impedance_matrix = None
+        self.bus_admittance_matrix = MatrixVariable()
+        self.bus_impedance_matrix = MatrixVariable()
 
-        self.vector_impressed_bus_currents = None
-        self.vector_bus_voltages = None
+        self.vector_impressed_bus_currents = MatrixVariable()
+        self.vector_bus_voltages = MatrixVariable()
 
         self.elements = []
         self.simplified_elements = []
