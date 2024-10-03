@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from math import sqrt, pi, cos, sin
+import numpy as np
 
 # ! Review docstrings in all classes
 
@@ -125,6 +126,32 @@ class ImmittanceConstant:
     def change_base(self, pu_base: PuBase):
         self.y_pu = (self.y_pu * pu_base.z_base) / self.z_baseM
         self.z_baseM = pu_base.z_base
+
+
+class MatrixVariable:
+
+    def __init__(self):
+        self.matrix_seq0 = None
+        self.matrix_seq1 = None
+        self.matrix_seq2 = None
+
+    def set_seq0(self, matrix: np.ndarray):
+        self.matrix_seq0 = matrix
+
+    def set_seq1(self, matrix: np.ndarray):
+        self.matrix_seq1 = matrix
+
+    def set_seq2(self, matrix: np.ndarray):
+        self.matrix_seq2 = matrix
+
+    def seq0(self):
+        return self.matrix_seq0
+
+    def seq1(self):
+        return self.matrix_seq1
+
+    def seq2(self):
+        return self.matrix_seq2
 
 
 class VIVariable(ABC):
