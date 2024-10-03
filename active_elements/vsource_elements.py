@@ -1,6 +1,6 @@
 from active_elements.base_elements import ActiveElement1Terminal
 from electrical_values import ImmittanceConstant, VoltageVariable
-from electrical_relations import equivalent_y_series, calculate_current, delta2star, calculate_central_v_star
+from electrical_relations import equivalent_y_series
 
 
 class NetworkEquivalent(ActiveElement1Terminal):
@@ -30,13 +30,7 @@ class NetworkEquivalent(ActiveElement1Terminal):
 
     def _define_seq0_topology(self, y_series_seq0_pu: complex, y_series_np_seq0_pu: complex,
                               y_series_mp_seq0_pu: complex):
-        self.branches_seq0 = ImmittanceConstant(y_series_seq0_pu, self.base_m, self.id_bus_m, 0)
-
-    def calculate_internal_currents_pre_fault_pu(self):
-        pass
-
-    def calculate_internal_currents_pos_fault_pu(self):
-        pass
+        self.branches_seq0 = [ImmittanceConstant(y_series_seq0_pu, self.base_m, self.id_bus_m, 0)]
 
 
 class SynchronousGenerator(ActiveElement1Terminal):
@@ -68,16 +62,10 @@ class SynchronousGenerator(ActiveElement1Terminal):
                               y_series_mp_seq0_pu: complex):
         if (self.connection == "Yg") or (self.connection == 'Yzn'):
             y_series_seq0_pu = equivalent_y_series(y_series_seq0_pu, 3 * self.y_grounded.y_pu)
-            self.branches_seq0 = ImmittanceConstant(y_series_seq0_pu, self.base_m, self.id_bus_m, 0)
+            self.branches_seq0 = [ImmittanceConstant(y_series_seq0_pu, self.base_m, self.id_bus_m, 0)]
 
         elif (self.connection == "D") or (self.connection == "Y") or (self.connection == "Yn"):
-            self.branches_seq0 = ImmittanceConstant(0, self.base_m, self.id_bus_m, 0)
-
-    def calculate_internal_currents_pre_fault_pu(self):
-        pass
-
-    def calculate_internal_currents_pos_fault_pu(self):
-        pass
+            self.branches_seq0 = [ImmittanceConstant(0, self.base_m, self.id_bus_m, 0)]
 
 
 class SynchronousMotor(SynchronousGenerator):
@@ -86,9 +74,3 @@ class SynchronousMotor(SynchronousGenerator):
 
         super().__init__(z_series_seq0_pu, z_series_seq1_pu, z_series_seq2_pu, id_bus_m, v_nom_kv, s_nom_mva,
                          connection, zn_grounded_pu)
-
-    def calculate_internal_currents_pre_fault_pu(self):
-        pass
-
-    def calculate_internal_currents_pos_fault_pu(self):
-        pass
