@@ -6,7 +6,7 @@ from active_elements.base_elements import ActiveElement1Terminal
 from passive_elements.base_elements import PassiveElement3Terminals, PassiveElement2Terminals, PassiveElement1Terminal
 
 
-def simplify_elements(elements: list):
+def simplify_elements(elements: list[Element3Terminals]) -> list[Element3Terminals]:
     primitive_incidence_matrix = find_primitive_incidence_matrix(elements)
 
     # Create a dict with a default value of an empty list for KeyError
@@ -30,7 +30,7 @@ def simplify_elements(elements: list):
     return simplified_elements
 
 
-def find_primitive_incidence_matrix(elements: list) -> list[list[int]]:
+def find_primitive_incidence_matrix(elements: list[Element3Terminals]) -> list[list[int]]:
     primitive_incidence_matrix = []
 
     for element in elements:
@@ -48,7 +48,7 @@ def find_primitive_incidence_matrix(elements: list) -> list[list[int]]:
     return primitive_incidence_matrix
 
 
-def find_primitives_matrices(simplified_elements: list[Element3Terminals], seq: str):
+def find_primitives_matrices(simplified_elements: list[Element3Terminals], seq: str) -> tuple:
     primitive_admittance_row = np.array([], dtype=complex)
 
     for element in simplified_elements:
@@ -64,7 +64,7 @@ def find_primitives_matrices(simplified_elements: list[Element3Terminals], seq: 
     return primitive_admittance_matrix, primitive_impedance_matrix
 
 
-def find_incidences_matrices(simplified_elements: list[Element3Terminals], seq: str, n_buses: int):
+def find_incidences_matrices(simplified_elements: list[Element3Terminals], seq: str, n_buses: int) -> tuple:
     incidence_matrix = np.array([0] * n_buses, dtype=int)
 
     for element in simplified_elements:
@@ -87,7 +87,7 @@ def find_incidences_matrices(simplified_elements: list[Element3Terminals], seq: 
     return bus_incidence_matrix, element_node_incidence_matrix
 
 
-def calculate_number_branches(simplified_elements: list[Element3Terminals], seq: str):
+def calculate_number_branches(simplified_elements: list[Element3Terminals], seq: str) -> int:
     n_branches = 0
 
     for element in simplified_elements:
@@ -99,8 +99,15 @@ def calculate_number_branches(simplified_elements: list[Element3Terminals], seq:
     return n_branches
 
 
-def calculate_buses_matrices(bus_incidence_matrix, primitive_admittance_matrix):
-    pass
+def calculate_buses_matrices(bus_incidence_matrix: np.ndarray, primitive_admittance_matrix: np.ndarray) -> tuple:
+    transpose_bus_incidence_matrix = np.transpose(bus_incidence_matrix)
+
+    bus_admittance_matrix = np.matmul(transpose_bus_incidence_matrix,
+                                      np.matmul(primitive_admittance_matrix, bus_incidence_matrix))
+
+    bus_impedance_matrix = np.linalg.inv(bus_admittance_matrix)
+
+    return bus_admittance_matrix, bus_impedance_matrix
 
 
 def assign_bases(simplified_elements):
