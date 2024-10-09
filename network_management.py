@@ -49,11 +49,54 @@ def find_primitive_incidence_matrix(elements: list) -> list[list[int]]:
 
 
 def find_primitives_matrices(simplified_elements: list[Element3Terminals], seq: str):
-    pass
+    primitive_admittance_row = np.array([], dtype=complex)
+
+    for element in simplified_elements:
+        branch: list[ImmittanceConstant] = element.admittance_representation(seq)
+
+        for admittance in branch:
+            if admittance.y_pu != 0:
+                primitive_admittance = np.array([admittance.y_pu], dtype=complex)
+                primitive_admittance_row = np.hstack((primitive_admittance_row, primitive_admittance))
+
+    primitive_admittance_matrix = np.diag(primitive_admittance_row)
+    primitive_impedance_matrix = np.linalg.inv(primitive_admittance_matrix)
+    return primitive_admittance_matrix, primitive_impedance_matrix
 
 
-def find_incidences_matrices(simplified_elements: list):
-    pass
+def find_incidences_matrices(simplified_elements: list[Element3Terminals], seq: str, n_buses: int):
+    incidence_matrix = np.array([0] * n_buses, dtype=int)
+
+    for element in simplified_elements:
+        branch: list[ImmittanceConstant] = element.admittance_representation(seq)
+        element_id_bus_m, element_id_bus_n, element_id_bus_p = element.id_bus_m, element.id_bus_n, element.id_bus_p
+
+        for admittance in branch:
+            if admittance.y_pu != 0:
+                primitive_incidence_row = np.zeros((1, n_buses), dtype=int)
+                (primitive_incidence_row[0, element_id_bus_m],
+                 primitive_incidence_row[0, element_id_bus_n],
+                 primitive_incidence_row[0, element_id_bus_p]) = 1, -1, -1
+
+                incidence_matrix = np.vstack((incidence_matrix, primitive_incidence_row))
+
+    # Elimination of bus zero column and the first null row
+    element_node_incidence_matrix = incidence_matrix[1:, :]
+    bus_incidence_matrix = incidence_matrix[1:, 1:]
+
+    return bus_incidence_matrix, element_node_incidence_matrix
+
+
+def calculate_number_branches(simplified_elements: list[Element3Terminals], seq: str):
+    n_branches = 0
+
+    for element in simplified_elements:
+        branch: list[ImmittanceConstant] = element.admittance_representation(seq)
+        for admittance in branch:
+            if admittance.y_pu != 0:
+                n_branches += 1
+
+    return n_branches
 
 
 def calculate_buses_matrices(bus_incidence_matrix, primitive_admittance_matrix):
