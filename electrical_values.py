@@ -131,27 +131,29 @@ class ImmittanceConstant:
 class MatrixVariable:
 
     def __init__(self):
-        self.matrix_seq0 = None
-        self.matrix_seq1 = None
-        self.matrix_seq2 = None
+        self._matrix_seq0 = None
+        self._matrix_seq1 = None
+        self._matrix_seq2 = None
 
-    def set_seq0(self, matrix: np.ndarray):
-        self.matrix_seq0 = matrix
+    def set_matrix(self, matrix: np.ndarray, seq: str):
+        if seq == 'seq1':
+            self._matrix_seq1 = matrix
+        elif seq == 'seq2':
+            self._matrix_seq2 = matrix
+        elif seq == 'seq0':
+            self._matrix_seq0 = matrix
+        else:
+            pass  # ! raise seq error
 
-    def set_seq1(self, matrix: np.ndarray):
-        self.matrix_seq1 = matrix
-
-    def set_seq2(self, matrix: np.ndarray):
-        self.matrix_seq2 = matrix
-
-    def seq0(self):
-        return self.matrix_seq0
-
-    def seq1(self):
-        return self.matrix_seq1
-
-    def seq2(self):
-        return self.matrix_seq2
+    def get_matrix(self, seq: str):
+        if seq == 'seq1':
+            return self._matrix_seq1
+        elif seq == 'seq2':
+            return self._matrix_seq2
+        elif seq == 'seq0':
+            return self._matrix_seq0
+        else:
+            pass  # ! raise seq error
 
 
 class VIVariable(ABC):

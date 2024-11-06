@@ -1,6 +1,8 @@
 from electrical_values import (VoltageVariable, CurrentVariable, PuBase, PuBaseManager,
                                ImmittanceConstant, MatrixVariable)
-from abc import ABC, abstractmethod
+import network_management as nm
+import numpy as np
+from base_elements import Element3Terminals
 from electrical_relations import calculate_central_v_star, calculate_current, delta2star
 from passive_elements.base_elements import PassiveElement3Terminals
 
@@ -29,6 +31,7 @@ class Network:
         ground_bus = Bus(0)
 
         self.buses = [ground_bus] + [Bus(i) for i in range(1, number_buses + 1)]
+        self.n_buses = number_buses
 
         self.element_node_incidence_matrix = MatrixVariable()
         self.bus_incidence_matrix = MatrixVariable()
@@ -44,21 +47,35 @@ class Network:
 
         self.elements = []
         self.simplified_elements = []
+        self.simplified_admittances_seq0 = []
 
-    def add_elements(self, elements: list):
+    def add_elements(self, elements: list[Element3Terminals]):
         self.elements.append(elements)
 
-    def simplify_elements(self, elements: list):
-        pass
+    def simplify_elements(self, seq: str):
+        self.simplified_elements = nm.simplify_elements(self.elements, seq)
+        self.simplified_admittances_seq0 = nm.simplify_admittances_seq0(self.simplified_elements)
 
-    def find_primitives_matrices(self, simplified_elements: list):
-        pass
+    def find_primitives_matrices(self, seq: str):
+        primitive_matrices = nm.find_primitives_matrices(self.simplified_elements, seq,
+                                                         self.simplified_admittances_seq0)
+        primitive_admittance_matrix, primitive_impedance_matrix = primitive_matrices
+        self.primitive_admittance_matrix.set_matrix(primitive_admittance_matrix, seq)
+        self.primitive_impedance_matrix.set_matrix(primitive_impedance_matrix, seq)
 
-    def find_incidences_matrices(self, simplified_elements: list):
-        pass
+    def find_incidences_matrices(self, seq: str):
+        incidence_matrices = nm.find_incidences_matrices(self.simplified_elements, seq, self.n_buses,
+                                                         self.simplified_admittances_seq0)
+        element_node_incidence_matrix, bus_incidence_matrix = incidence_matrices
+        self.element_node_incidence_matrix.set_matrix(element_node_incidence_matrix, seq)
+        self.bus_incidence_matrix.set_matrix(bus_incidence_matrix, seq)
 
-    def calculate_buses_matrices(self, bus_incidence_matrix, primitive_admittance_matrix):
-        pass
+    def calculate_buses_matrices(self, seq: str):
+        buses_matrices = nm.calculate_buses_matrices(self.bus_incidence_matrix.get_matrix(seq),
+                                                     self.primitive_admittance_matrix.get_matrix(seq))
+        bus_admittance_matrix, bus_impedance_matrix = buses_matrices
+        self.bus_admittance_matrix.set_matrix(bus_admittance_matrix, seq)
+        self.bus_impedance_matrix.set_matrix(bus_impedance_matrix, seq)
 
     def assign_bases(self, simplified_elements):
         pass
