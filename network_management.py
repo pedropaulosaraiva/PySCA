@@ -2,9 +2,10 @@ import numpy as np
 from collections import defaultdict
 from electrical_values import ImmittanceConstant, PuBase
 from electrical_relations import equivalent_y_series
-from base_elements import Element3Terminals, Element2Terminals, CompositeElement
+from base_elements import Element3Terminals, Element2Terminals, Element1Terminal, CompositeElement
 from active_elements.base_elements import ActiveElement1Terminal
 from passive_elements.base_elements import PassiveElement3Terminals, PassiveElement2Terminals, PassiveElement1Terminal
+from passive_elements.transformer_elements import Transformer2Windings, Transformer3Windings
 
 
 def simplify_elements(elements: list[Element3Terminals], seq: str) -> list[Element3Terminals]:
@@ -161,6 +162,65 @@ def find_incidences_matrices(simplified_elements: list[Element3Terminals], seq: 
     bus_incidence_matrix = incidence_matrix[1:, 1:]
 
     return bus_incidence_matrix, element_node_incidence_matrix
+
+
+def find_incidence_base_matrix(simplified_elements: list[Element3Terminals], n_buses: int):
+    incidence_matrix = np.array([0] * n_buses, dtype=int)
+
+    for element in simplified_elements:
+        branch: list[ImmittanceConstant] = element.admittance_representation('seq1')
+
+        if isinstance(element, Transformer2Windings):
+            v_pri = element.base_m.v_base
+            v_sec = element.base_n.v_base
+
+            admittance = branch[0]
+            primitive_incidence_row = np.zeros((1, n_buses), dtype=int)
+            (primitive_incidence_row[0, admittance.id_bus_m],
+             primitive_incidence_row[0, admittance.id_bus_n]) = 1*(1/v_pri), -1*(1/v_sec)
+
+            incidence_matrix = np.vstack((incidence_matrix, primitive_incidence_row))
+
+        elif isinstance(element, Transformer3Windings):
+            v_pri = element.base_m.v_base
+            v_sec = element.base_n.v_base
+            v_ter = element.base_p.v_base
+
+            admittance = branch[0]
+            primitive_incidence_row = np.zeros((1, n_buses), dtype=int)
+            (primitive_incidence_row[0, admittance.id_bus_m],
+             primitive_incidence_row[0, admittance.id_bus_n]) = 1 * (1 / v_pri), -1 * (1 / v_sec)
+
+            incidence_matrix = np.vstack((incidence_matrix, primitive_incidence_row))
+
+            admittance = branch[1]
+            primitive_incidence_row = np.zeros((1, n_buses), dtype=int)
+            (primitive_incidence_row[0, admittance.id_bus_m],
+             primitive_incidence_row[0, admittance.id_bus_n]) = 1 * (1 / v_sec), -1 * (1 / v_ter)
+
+            incidence_matrix = np.vstack((incidence_matrix, primitive_incidence_row))
+
+            admittance = branch[2]
+            primitive_incidence_row = np.zeros((1, n_buses), dtype=int)
+            (primitive_incidence_row[0, admittance.id_bus_m],
+             primitive_incidence_row[0, admittance.id_bus_n]) = 1 * (1 / v_pri), -1 * (1 / v_ter)
+
+            incidence_matrix = np.vstack((incidence_matrix, primitive_incidence_row))
+        elif isinstance(element, Element1Terminal):
+            pass
+        else:
+            for admittance in branch:
+                if admittance.y_pu != 0:
+                    primitive_incidence_row = np.zeros((1, n_buses), dtype=int)
+                    (primitive_incidence_row[0, admittance.id_bus_m],
+                     primitive_incidence_row[0, admittance.id_bus_n]) = 1, -1
+
+                    incidence_matrix = np.vstack((incidence_matrix, primitive_incidence_row))
+
+    # Elimination of bus zero column and the first null row
+    incidence_base_matrix = incidence_matrix[1:, 1:]
+
+    return incidence_base_matrix
 
 
 def calculate_number_branches(simplified_elements: list[Element3Terminals], seq: str) -> int:
