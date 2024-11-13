@@ -27,7 +27,7 @@ class Bus:
 
 class Network:
 
-    def __init__(self, number_buses: int, s_base: complex, id_bus_reference: int, v_base_bus_reference: complex):
+    def __init__(self, number_buses: int, s_base: float, id_bus_reference: int, v_base_bus_reference: float):
         ground_bus = Bus(0)
 
         self.buses = [ground_bus] + [Bus(i) for i in range(1, number_buses + 1)]

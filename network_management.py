@@ -246,5 +246,24 @@ def calculate_buses_matrices(bus_incidence_matrix: np.ndarray, primitive_admitta
     return bus_admittance_matrix, bus_impedance_matrix
 
 
-def assign_bases(simplified_elements: list[Element3Terminals]):
-    pass
+def redefine_bases(simplified_elements: list[Element3Terminals], n_buses: int, id_bus_reference: int,
+                   v_base_bus_reference: float):
+    incidence_bus_matrix = find_incidence_base_matrix(simplified_elements, n_buses)
+
+    m, n = incidence_bus_matrix.shape
+
+    _, _, Vt = np.linalg.svd(incidence_bus_matrix)
+    null_space_basis = Vt.T[:, -1]
+
+    # ! Check if and raise errors
+    if null_space_basis[id_bus_reference] == 0:
+        return "The system is impossible: fixed value contradicts the null space."
+    elif np.linalg.matrix_rank(incidence_bus_matrix) != (n_buses - 1):
+        return "The network doesn't have a define base"
+
+    scale_factor = v_base_bus_reference / null_space_basis[id_bus_reference]
+    v_base_solution = scale_factor * null_space_basis
+
+    v_base = v_base_solution.reshape(-1)
+
+    return v_base
