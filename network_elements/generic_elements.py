@@ -30,6 +30,10 @@ class Network:
     def __init__(self, number_buses: int, s_base: float, id_bus_reference: int, v_base_bus_reference: float):
         ground_bus = Bus(0)
 
+        self.s_base = s_base
+        self.id_bus_reference = id_bus_reference
+        self.v_base_bus_reference = v_base_bus_reference
+
         self.buses = [ground_bus] + [Bus(i) for i in range(1, number_buses + 1)]
         self.n_buses = number_buses
 
@@ -78,4 +82,8 @@ class Network:
         self.bus_impedance_matrix.set_matrix(bus_impedance_matrix, seq)
 
     def assign_bases(self, simplified_elements):
-        pass
+        v_base = nm.redefine_bases(simplified_elements, self.n_buses, self.id_bus_reference, self.v_base_bus_reference)
+
+        for bus, v_base in zip(self.buses[1:], v_base):
+            base: PuBase = bus.base_bus
+            base.update_base(v_base, self.s_base)
